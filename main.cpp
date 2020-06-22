@@ -1,6 +1,5 @@
 #include <boost/regex.hpp>
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <vector>
 
@@ -44,22 +43,39 @@ int main(int argc, char **argv) {
 
         if (variablesMap.count("regexp")) {
             std::string line;
+            boost::smatch what;
             while (getline(std::cin, line)) {
                 for (auto &value: pattern) {
-                    auto search = line.find(value);
-                    if (search != std::string::npos) {
+                    auto result = value.find('*');
+                    if (result != std::string::npos) {
+                        value.erase(remove(value.begin(), value.end(), '*'), value.end());
+                    }
+
+                    boost::regex basicRegex(value, boost::regex::perl);
+                    if (boost::regex_search(line, what, basicRegex)) {
                         std::cout << line << "\n";
                         break;
                     }
                 }
             }
         } else {
-            std::cerr << "boost-grepCommand: at least the -e parameter is needed" << std::endl;
+            std::cerr << "„./boost-grepCommand:“ at least the -e parameter is needed" << std::endl;
             return EXIT_FAILURE;
         }
 
-    } catch (const std::exception &exception) {
-        std::cerr << exception.what() << "\n";
+    } catch (const po::unknown_option &err) {
+        std::cerr << err.what() << "\n";
+        std::cerr << "„./boost-grepCommand --help“ provides further information.\n";
+        return EXIT_FAILURE;
+    } catch (const po::invalid_option_value &err) {
+        std::cerr << err.what() << "\n";
+        std::cerr << "„./boost-grepCommand --help“ provides further information.\n";
+        return EXIT_FAILURE;
+    } catch (const po::error &err) {
+        std::cerr << err.what() << std::endl;
+        std::cerr << "Usage: ./boost-grepCommand [OPTION] PATTERN [FILE]\n";
+        std::cerr << "„./boost-grepCommand --help“ provides further information.\n";
+        return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;
